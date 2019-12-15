@@ -106,7 +106,7 @@ void register_rabbit(int i, int j) {
 
 void move_rabbit(int i, int j) {
     int area_code = -1;
-    rabbit_t rabbit = {RABBIT, -1};
+    eco_rabbit_t rabbit = {RABBIT, -1};
 
     if (candidates[CENTER][i][j]) {
         area_code = CENTER;

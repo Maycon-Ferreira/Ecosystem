@@ -34,12 +34,4 @@ int eco_read_input(char* filepath);
 int eco_sim_step();
 void eco_sim_run();
 
-#ifndef ECO_NO_SHORT_NAMES
-
-typedef eco_fox_t fox_t;
-typedef eco_rabbit_t rabbit_t;
-typedef eco_rock_t rock_t;
-
-#endif // ECO_NO_SHORT_NAMES
-
 #endif // ECOSYSTEM_ECO_H
