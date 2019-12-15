@@ -69,28 +69,83 @@ int eco_read_input(char *filepath) {
 #pragma clang diagnostic pop
 
 void register_rabbit(int i, int j) {
-    if (*((eco_type_t *) &ecosystem[i][j]) == RABBIT) {
-        int P = 0;
+    if (*((eco_type_t *) &ecosystem[i][j]) != RABBIT) { return; }
 
-        if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == EMPTY) { ++P; }
-        if (j + 1 < C && *((eco_type_t *) &ecosystem[i][j + 1]) == EMPTY) { ++P; }
-        if (i + 1 < L && *((eco_type_t *) &ecosystem[i + 1][j]) == EMPTY) { ++P; }
-        if (j - 1 >= 0 && *((eco_type_t *) &ecosystem[i][j - 1]) == EMPTY) { ++P; }
+    int P = 0;
 
-        P = (gen_count + i + j) % P;
+    if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == EMPTY) { ++P; }
+    if (j + 1 < C && *((eco_type_t *) &ecosystem[i][j + 1]) == EMPTY) { ++P; }
+    if (i + 1 < L && *((eco_type_t *) &ecosystem[i + 1][j]) == EMPTY) { ++P; }
+    if (j - 1 >= 0 && *((eco_type_t *) &ecosystem[i][j - 1]) == EMPTY) { ++P; }
 
-        if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == EMPTY && --P == 0) {
-            candidates[SOUTH][i - 1][j] = 1;
+    P = (gen_count + i + j) % P;
+
+    if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == EMPTY && --P == 0) {
+        candidates[SOUTH][i - 1][j] = 1;
+    }
+    if (j + 1 < C && *((eco_type_t *) &ecosystem[i][j + 1]) == EMPTY && --P == 0) {
+        candidates[WEST][i][j + 1] = 1;
+    }
+    if (i + 1 < L && *((eco_type_t *) &ecosystem[i + 1][j]) == EMPTY && --P == 0) {
+        candidates[NORTH][i + 1][j] = 1;
+    }
+    if (j - 1 >= 0 && *((eco_type_t *) &ecosystem[i][j - 1]) == EMPTY && --P == 0) {
+        candidates[EAST][i][j - 1] = 1;
+    }
+}
+
+void move_rabbit(int i, int j) {
+    int area_code = -1;
+
+    ecosystem[i][j].rabbit.type = RABBIT;
+    ecosystem[i][j].rabbit.age = -1;
+
+    if (candidates[NORTH][i][j] && ecosystem[i - 1][j].rabbit.age > ecosystem[i][j].rabbit.age) {
+        ecosystem[i][j].rabbit = ecosystem[i - 1][j].rabbit;
+        area_code = NORTH;
+    }
+    if (candidates[EAST][i][j] && ecosystem[i][j + 1].rabbit.age > ecosystem[i][j].rabbit.age) {
+        ecosystem[i][j].rabbit = ecosystem[i][j + 1].rabbit;
+        area_code = EAST;
+    }
+    if (candidates[SOUTH][i][j] && ecosystem[i + 1][j].rabbit.age > ecosystem[i][j].rabbit.age) {
+        ecosystem[i][j].rabbit = ecosystem[i + 1][j].rabbit;
+        area_code = SOUTH;
+    }
+    if (candidates[WEST][i][j] && ecosystem[i][j - 1].rabbit.age > ecosystem[i][j].rabbit.age) {
+        ecosystem[i][j].rabbit = ecosystem[i][j - 1].rabbit;
+        area_code = WEST;
+    }
+
+    if (area_code == -1) { return; }
+
+    if (i - 1 >= 0) { ecosystem[i - 1][j].rabbit.type = EMPTY; }
+    if (j + 1 < C) { ecosystem[i][j + 1].rabbit.type = EMPTY; }
+    if (i + 1 < L) { ecosystem[i + 1][j].rabbit.type = EMPTY; }
+    if (j - 1 >= 0) { ecosystem[i][j - 1].rabbit.type = EMPTY; }
+
+    if (ecosystem[i][j].rabbit.age == GEN_RABBIT_PROC) {
+        ecosystem[i][j].rabbit.age = 0;
+
+        if (area_code == NORTH) {
+            ecosystem[i - 1][j].rabbit.type = RABBIT;
+            ecosystem[i - 1][j].rabbit.age = 0;
+        } else if (area_code == EAST) {
+            ecosystem[i][j + 1].rabbit.type = RABBIT;
+            ecosystem[i][j + 1].rabbit.age = 0;
+        } else if (area_code == SOUTH) {
+            ecosystem[i + 1][j].rabbit.type = RABBIT;
+            ecosystem[i + 1][j].rabbit.age = 0;
+        } else if (area_code == WEST) {
+            ecosystem[i][j - 1].rabbit.type = RABBIT;
+            ecosystem[i][j - 1].rabbit.age = 0;
         }
-        if (j + 1 < C && *((eco_type_t *) &ecosystem[i][j + 1]) == EMPTY && --P == 0) {
-            candidates[WEST][i][j + 1] = 1;
-        }
-        if (i + 1 < L && *((eco_type_t *) &ecosystem[i + 1][j]) == EMPTY && --P == 0) {
-            candidates[NORTH][i + 1][j] = 1;
-        }
-        if (j - 1 >= 0 && *((eco_type_t *) &ecosystem[i][j - 1]) == EMPTY && --P == 0) {
-            candidates[EAST][i][j - 1] = 1;
-        }
+    } else {
+        ++ecosystem[i][j].rabbit.age;
+    }
+
+    for (int k = 0; k < 4; ++k) {
+        candidates[k][i][j] = 0;
     }
 }
 
@@ -105,7 +160,7 @@ int eco_sim_step() {
 
     for (int i = 0; i < L; ++i) {
         for (int j = 0; j < C; ++j) {
-            // @TODO move rabbits
+            move_rabbit(i, j);
         }
     }
 
