@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #define CENTER 0
 #define NORTH 1
@@ -106,7 +107,7 @@ void register_rabbit(int i, int j) {
 
 void move_rabbit(int i, int j) {
     int area_code = -1;
-    eco_rabbit_t rabbit = {RABBIT, -1};
+    eco_rabbit_t rabbit = {RABBIT, INT_MIN};
 
     if (candidates[CENTER][i][j]) {
         area_code = CENTER;
@@ -137,7 +138,7 @@ void move_rabbit(int i, int j) {
     if (i + 1 < L && candidates[SOUTH][i][j]) { ecosystem[i + 1][j].rabbit.type = EMPTY; }
     if (j - 1 >= 0 && candidates[WEST][i][j]) { ecosystem[i][j - 1].rabbit.type = EMPTY; }
 
-    if (ecosystem[i][j].rabbit.age == GEN_RABBIT_PROC) {
+    if (ecosystem[i][j].rabbit.age >= GEN_RABBIT_PROC && area_code != CENTER) {
         ecosystem[i][j].rabbit.age = 0;
 
         if (area_code == NORTH) {
@@ -162,8 +163,155 @@ void move_rabbit(int i, int j) {
     }
 }
 
+void register_fox(int i, int j) {
+    if (*((eco_type_t *) &ecosystem[i][j]) != FOX) { return; }
+
+    if (ecosystem[i][j].fox.hunger == GEN_FOX_STARVE) {
+        ecosystem[i][j].fox.type = EMPTY;
+        return;
+    }
+
+    int P = 0;
+
+    if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == RABBIT) { P++; }
+    if (j + 1 < C && *((eco_type_t *) &ecosystem[i][j + 1]) == RABBIT) { P++; }
+    if (i + 1 < L && *((eco_type_t *) &ecosystem[i + 1][j]) == RABBIT) { P++; }
+    if (j - 1 >= 0 && *((eco_type_t *) &ecosystem[i][j - 1]) == RABBIT) { P++; }
+
+    if (P != 0) {
+        P = (gen_count + i + j) % P;
+
+        if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == RABBIT && P-- == 0) {
+            candidates[SOUTH][i - 1][j] = 1;
+            return;
+        }
+        if (j + 1 < C && *((eco_type_t *) &ecosystem[i][j + 1]) == RABBIT && P-- == 0) {
+            candidates[WEST][i][j + 1] = 1;
+            return;
+        }
+        if (i + 1 < L && *((eco_type_t *) &ecosystem[i + 1][j]) == RABBIT && P-- == 0) {
+            candidates[NORTH][i + 1][j] = 1;
+            return;
+        }
+        if (j - 1 >= 0 && *((eco_type_t *) &ecosystem[i][j - 1]) == RABBIT && P == 0) {
+            candidates[EAST][i][j - 1] = 1;
+            return;
+        }
+    } else {
+        if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == EMPTY) { ++P; }
+        if (j + 1 < C && *((eco_type_t *) &ecosystem[i][j + 1]) == EMPTY) { ++P; }
+        if (i + 1 < L && *((eco_type_t *) &ecosystem[i + 1][j]) == EMPTY) { ++P; }
+        if (j - 1 >= 0 && *((eco_type_t *) &ecosystem[i][j - 1]) == EMPTY) { ++P; }
+
+        if (P == 0) {
+            candidates[CENTER][i][j] = 1;
+            return;
+        }
+
+        P = (gen_count + i + j) % P;
+
+        if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == EMPTY && P-- == 0) {
+            candidates[SOUTH][i - 1][j] = 1;
+            return;
+        }
+        if (j + 1 < C && *((eco_type_t *) &ecosystem[i][j + 1]) == EMPTY && P-- == 0) {
+            candidates[WEST][i][j + 1] = 1;
+            return;
+        }
+        if (i + 1 < L && *((eco_type_t *) &ecosystem[i + 1][j]) == EMPTY && P-- == 0) {
+            candidates[NORTH][i + 1][j] = 1;
+            return;
+        }
+        if (j - 1 >= 0 && *((eco_type_t *) &ecosystem[i][j - 1]) == EMPTY && P == 0) {
+            candidates[EAST][i][j - 1] = 1;
+            return;
+        }
+    }
+}
+
+void move_fox(int i, int j) {
+    int area_code = -1;
+    eco_fox_t fox = {FOX, INT_MIN, INT_MAX};
+
+    if (candidates[CENTER][i][j]) {
+        area_code = CENTER;
+    } else {
+        if (candidates[NORTH][i][j] && (ecosystem[i - 1][j].fox.age > fox.age ||
+                                        (ecosystem[i - 1][j].fox.age == fox.age &&
+                                         ecosystem[i - 1][j].fox.hunger < fox.hunger))) {
+
+            fox = ecosystem[i - 1][j].fox;
+            area_code = NORTH;
+        }
+        if (candidates[EAST][i][j] && (ecosystem[i][j + 1].fox.age > fox.age ||
+                                       (ecosystem[i][j + 1].fox.age == fox.age &&
+                                        ecosystem[i][j + 1].fox.hunger < fox.hunger))) {
+
+            fox = ecosystem[i][j + 1].fox;
+            area_code = EAST;
+        }
+        if (candidates[SOUTH][i][j] && (ecosystem[i + 1][j].fox.age > fox.age ||
+                                        (ecosystem[i + 1][j].fox.age == fox.age &&
+                                         ecosystem[i + 1][j].fox.hunger < fox.hunger))) {
+
+            fox = ecosystem[i + 1][j].fox;
+            area_code = SOUTH;
+        }
+        if (candidates[WEST][i][j] && (ecosystem[i][j - 1].fox.age > fox.age ||
+                                       (ecosystem[i][j - 1].fox.age == fox.age &&
+                                        ecosystem[i][j - 1].fox.hunger < fox.hunger))) {
+
+            fox = ecosystem[i][j - 1].fox;
+            area_code = WEST;
+        }
+    }
+
+    if (area_code == -1) { return; }
+    if (area_code != CENTER) {
+        if (*((eco_type_t *) &ecosystem[i][j]) == RABBIT) {
+            fox.hunger = 0;
+        } else {
+            ++fox.hunger;
+        }
+        ecosystem[i][j].fox = fox;
+    }
+
+    if (i - 1 >= 0 && candidates[NORTH][i][j]) { ecosystem[i - 1][j].fox.type = EMPTY; }
+    if (j + 1 < C && candidates[EAST][i][j]) { ecosystem[i][j + 1].fox.type = EMPTY; }
+    if (i + 1 < L && candidates[SOUTH][i][j]) { ecosystem[i + 1][j].fox.type = EMPTY; }
+    if (j - 1 >= 0 && candidates[WEST][i][j]) { ecosystem[i][j - 1].fox.type = EMPTY; }
+
+    if (ecosystem[i][j].fox.age >= GEN_FOX_PROC && area_code != CENTER) {
+        ecosystem[i][j].fox.age = 0;
+
+        if (area_code == NORTH) {
+            ecosystem[i - 1][j].fox.type = FOX;
+            ecosystem[i - 1][j].fox.age = 0;
+            ecosystem[i - 1][j].fox.hunger = 0;
+        } else if (area_code == EAST) {
+            ecosystem[i][j + 1].fox.type = FOX;
+            ecosystem[i][j + 1].fox.age = 0;
+            ecosystem[i][j + 1].fox.hunger = 0;
+        } else if (area_code == SOUTH) {
+            ecosystem[i + 1][j].fox.type = FOX;
+            ecosystem[i + 1][j].fox.age = 0;
+            ecosystem[i + 1][j].fox.hunger = 0;
+        } else if (area_code == WEST) {
+            ecosystem[i][j - 1].fox.type = FOX;
+            ecosystem[i][j - 1].fox.age = 0;
+            ecosystem[i][j - 1].fox.hunger = 0;
+        }
+    } else {
+        ++ecosystem[i][j].fox.age;
+    }
+
+    for (int k = 0; k < 5; ++k) {
+        candidates[k][i][j] = 0;
+    }
+}
+
 int eco_sim_step() {
-    if (gen_count == MAX_GEN_COUNT) { return -1; }
+    if (gen_count == MAX_GEN_COUNT - 1) { return -1; }
 
     for (int i = 0; i < L; ++i) {
         for (int j = 0; j < C; ++j) {
@@ -179,13 +327,13 @@ int eco_sim_step() {
 
     for (int i = 0; i < L; ++i) {
         for (int j = 0; j < C; ++j) {
-            // @TODO register fox candidates
+            register_fox(i, j);
         }
     }
 
     for (int i = 0; i < L; ++i) {
         for (int j = 0; j < C; ++j) {
-            // @TODO move foxes
+            move_fox(i, j);
         }
     }
 
