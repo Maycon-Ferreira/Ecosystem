@@ -34,4 +34,6 @@ int eco_read_input(char* filepath);
 int eco_sim_step();
 void eco_sim_run();
 
+void eco_print_step();
+
 #endif // ECOSYSTEM_ECO_H

@@ -166,11 +166,6 @@ void move_rabbit(int i, int j) {
 void register_fox(int i, int j) {
     if (*((eco_type_t *) &ecosystem[i][j]) != FOX) { return; }
 
-    if (ecosystem[i][j].fox.hunger == GEN_FOX_STARVE) {
-        ecosystem[i][j].fox.type = EMPTY;
-        return;
-    }
-
     int P = 0;
 
     if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == RABBIT) { P++; }
@@ -198,6 +193,11 @@ void register_fox(int i, int j) {
             return;
         }
     } else {
+        if (ecosystem[i][j].fox.hunger + 1 == GEN_FOX_STARVE) {
+            ecosystem[i][j].fox.type = EMPTY;
+            return;
+        }
+
         if (i - 1 >= 0 && *((eco_type_t *) &ecosystem[i - 1][j]) == EMPTY) { ++P; }
         if (j + 1 < C && *((eco_type_t *) &ecosystem[i][j + 1]) == EMPTY) { ++P; }
         if (i + 1 < L && *((eco_type_t *) &ecosystem[i + 1][j]) == EMPTY) { ++P; }
@@ -344,4 +344,23 @@ int eco_sim_step() {
 
 void eco_sim_run() {
     while (eco_sim_step() == 0);
+}
+
+void eco_print_step() {
+    for (int i = 0; i < L; ++i) {
+        for (int j = 0; j < C; ++j) {
+            printf("|");
+
+            if (*((eco_type_t *) &ecosystem[i][j]) == EMPTY) {
+                printf("        ");
+            } else if (*((eco_type_t *) &ecosystem[i][j]) == FOX) {
+                printf("\x1b[31m" " %2d, %-2d " "\x1b[0m", ecosystem[i][j].fox.age, ecosystem[i][j].fox.hunger);
+            } else if (*((eco_type_t *) &ecosystem[i][j]) == RABBIT) {
+                printf("\x1b[32m" "   %02d   " "\x1b[0m", ecosystem[i][j].rabbit.age);
+            } else if (*((eco_type_t *) &ecosystem[i][j]) == ROCK) {
+                printf("XXXXXXXX");
+            }
+        }
+        puts("|");
+    }
 }
